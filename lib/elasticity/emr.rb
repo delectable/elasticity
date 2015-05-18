@@ -18,18 +18,24 @@ module Elasticity
         :operation => 'DescribeJobFlows',
         :job_flow_ids => [jobflow_id]
       })
-      xml_doc = Nokogiri::XML(aws_result)
-      xml_doc.remove_namespaces!
       yield aws_result if block_given?
-      JobFlowStatus.from_members_nodeset(xml_doc.xpath('/DescribeJobFlowsResponse/DescribeJobFlowsResult/JobFlows/member')).first
+
+      begin 
+        jobflow_hashes = JSON.parse( aws_result )['JobFlows']
+        JobFlowStatus.from_jobflow_hashes( jobflow_hashes ).first
+      rescue
+        xml_doc = Nokogiri::XML(aws_result)
+        xml_doc.remove_namespaces!
+        JobFlowStatus.from_members_nodeset(xml_doc.xpath('/DescribeJobFlowsResponse/DescribeJobFlowsResult/JobFlows/member')).first
+      end
     end
 
     # This is primarily for debugging purposes, providing insight into how
     # Amazon internally represents jobs.  It's used to reverse-engineer
     # how API calls construct jobflows.
-    def describe_jobflow_xml(jobflow_id)
-      describe_jobflow(jobflow_id) do |xml|
-        return xml
+    def describe_jobflow_string(jobflow_id)
+      describe_jobflow(jobflow_id) do |string|
+        return string
       end
     end
 

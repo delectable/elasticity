@@ -33,6 +33,25 @@ module Elasticity
       jobflow_steps
     end
 
-  end
+    def self.from_step_hash(step_hash)
+      job_flow_step = JobFlowStatusStep.new
+      job_flow_step.name = step_hash['StepConfig']['Name'].to_s.strip
+      job_flow_step.state = step_hash['ExecutionStatusDetail']['State'].to_s.strip
+      created_at = step_hash['ExecutionStatusDetail']['CreationDateTime'].to_i
+      job_flow_step.created_at = (created_at == 0) ? (nil) : (Time.at(created_at))
+      started_at = step_hash['ExecutionStatusDetail']['StartDateTime'].to_i
+      job_flow_step.started_at = (started_at == 0) ? (nil) : (Time.at(started_at))
+      ended_at = step_hash['ExecutionStatusDetail']['EndDateTime'].to_i
+      job_flow_step.ended_at = (ended_at == 0) ? (nil) : (Time.at(ended_at))
+      job_flow_step
+    end
 
+    def self.from_step_hashes(step_hashes)
+      step_statuses = []
+      step_hashes.each do |step_hash|
+        step_statuses << from_step_hash( step_hash )
+      end
+      step_statuses
+    end
+  end
 end

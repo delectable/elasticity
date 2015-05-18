@@ -86,6 +86,64 @@ module Elasticity
       jobflow_statuses
     end
 
+    def self.from_jobflow_hash(jobflow_hash)
+      # Create a jobflow from an AWS <jobflow> (Hash):
+      #   /DescribeJobFlowsResponse/DescribeJobFlowsResult/JobFlows/member
+      jobflow_status = JobFlowStatus.new
+
+      ['Name','JobFlowId']
+
+      jobflow_status.name       = jobflow_hash['Name'].to_s.strip
+      jobflow_status.jobflow_id = jobflow_hash['JobFlowId'].to_s.strip
+      jobflow_status.state      = jobflow_hash['ExecutionStatusDetail']['State'].to_s.strip
+      
+      jobflow_status.
+      last_state_change_reason = jobflow_hash['ExecutionStatusDetail']['LastStateChangeReason'].to_s.strip
+      
+      jobflow_status.steps     = Elasticity::JobFlowStatusStep.
+                                 from_step_hashes(jobflow_hash['Steps'])
+
+      step_names = jobflow_status.steps.map(&:name)
+      Elasticity::JobFlowStep.steps_requiring_installation.each do |step|
+        jobflow_status.installed_steps << step if step_names.include?(step.aws_installation_step_name)
+      end
+
+      jobflow_status.created_at = Time.at(jobflow_hash['ExecutionStatusDetail']['CreationDateTime'].to_i)
+
+      ready_at = jobflow_hash['ExecutionStatusDetail']['ReadyDateTime'].to_i
+      jobflow_status.ready_at = (ready_at == 0) ? (nil) : (Time.at(ready_at))
+
+      started_at = jobflow_hash['ExecutionStatusDetail']['StartDateTime'].to_i
+      jobflow_status.started_at = (started_at == 0) ? (nil) : (Time.at(ready_at))
+
+      ended_at = jobflow_hash['ExecutionStatusDetail']['EndDateTime'].to_i
+      jobflow_status.ended_at = (ended_at == 0) ? (nil) : (Time.at(ended_at))
+
+      if jobflow_status.ended_at && jobflow_status.started_at
+        jobflow_status.duration = ((jobflow_status.ended_at - jobflow_status.started_at) / 60).to_i
+      end
+
+      jobflow_status.instance_count = jobflow_hash['Instances']['InstanceCount'].to_s.strip
+      jobflow_status.master_instance_type = jobflow_hash['Instances']['MasterInstanceType'].to_s.strip
+      master_instance_id = jobflow_hash['Instances']['MasterInstanceId'].to_s.strip
+      jobflow_status.master_instance_id = (master_instance_id == '') ? (nil) : (master_instance_id)
+      jobflow_status.slave_instance_type = jobflow_hash['Instances']['SlaveInstanceType'].to_s.strip
+
+      master_public_dns_name = jobflow_hash['Instances']['MasterPublicDnsName'].to_s.strip
+      jobflow_status.master_public_dns_name = (master_public_dns_name == '') ? (nil) : (master_public_dns_name)
+
+      jobflow_status.normalized_instance_hours = jobflow_hash['Instances']['NormalizedInstanceHours'].to_s.strip
+
+      jobflow_status
+    end
+
+    def self.from_jobflow_hashes(jobflow_hashes)
+      jobflow_statuses = []
+      jobflow_hashes.each do |jobflow_hash|
+        jobflow_statuses << from_jobflow_hash( jobflow_hash )
+      end
+      jobflow_statuses
+    end
   end
 
 end
