@@ -199,7 +199,7 @@ module Elasticity
       yield aws_result if block_given?
       
       begin 
-        JSON.parse( aws_result )['RunJobFlowResponse']['RunJobFlowResult']['JobFlowId']
+        JSON.parse( aws_result )['JobFlowId']
       rescue
         xml_doc = Nokogiri::XML(aws_result)
         xml_doc.remove_namespaces!
