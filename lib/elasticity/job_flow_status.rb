@@ -134,18 +134,19 @@ module Elasticity
       if jobflow_hash['Instances']['InstanceGroups']
         jobflow_hash['Instances']['InstanceGroups'].each do |instance_group|
         
-        instance_group_snake_hash = {}
+          instance_group_snake_hash = {}
 
-        instance_group.each do |key,value|
+          instance_group.each do |key,value|
 
-          snake_key = key.gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
-                          gsub(/([a-z\d])([A-Z])/,'\1_\2').
-                          downcase
+            snake_key = key.gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
+                            gsub(/([a-z\d])([A-Z])/,'\1_\2').
+                            downcase
 
-          instance_group_snake_hash[snake_key] = value
+            instance_group_snake_hash[snake_key] = value
+          end
+
+          jobflow_status.instance_groups << instance_group_snake_hash
         end
-
-        jobflow_status.instance_groups << instance_group_snake_hash
       end
 
       master_public_dns_name = jobflow_hash['Instances']['MasterPublicDnsName'].to_s.strip
