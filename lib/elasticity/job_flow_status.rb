@@ -19,10 +19,12 @@ module Elasticity
     attr_accessor :installed_steps
     attr_accessor :master_public_dns_name
     attr_accessor :normalized_instance_hours
+    attr_accessor :instance_groups
 
     def initialize
       @steps = []
       @installed_steps = []
+      @instance_groups = []
     end
 
     # http://docs.aws.amazon.com/ElasticMapReduce/latest/DeveloperGuide/ProcessingCycle.html
@@ -128,6 +130,23 @@ module Elasticity
       master_instance_id = jobflow_hash['Instances']['MasterInstanceId'].to_s.strip
       jobflow_status.master_instance_id = (master_instance_id == '') ? (nil) : (master_instance_id)
       jobflow_status.slave_instance_type = jobflow_hash['Instances']['SlaveInstanceType'].to_s.strip
+
+      if jobflow_hash['Instances']['InstanceGroups']
+        jobflow_hash['Instances']['InstanceGroups'].each do |instance_group|
+        
+        instance_group_snake_hash = {}
+
+        instance_group.each do |key,value|
+
+          snake_key = key.gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
+                          gsub(/([a-z\d])([A-Z])/,'\1_\2').
+                          downcase
+
+          instance_group_snake_hash[snake_key] = value
+        end
+
+        jobflow_status.instance_groups << instance_group_snake_hash
+      end
 
       master_public_dns_name = jobflow_hash['Instances']['MasterPublicDnsName'].to_s.strip
       jobflow_status.master_public_dns_name = (master_public_dns_name == '') ? (nil) : (master_public_dns_name)
